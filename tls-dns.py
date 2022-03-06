@@ -52,15 +52,16 @@ def thread(data, address, socket, dns, ca_path):
         logger.warn("Empty reply from server.")
 
 if __name__ == "__main__":
-   DNS = '1.1.1.1'
+   dns = '1.1.1.1'
    port = 53
    host='0.0.0.0'
+   ca_path='/etc/ssl/cert.pem'   
    try:
       s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
       s.bind((host, port))
       while True:
         data,addr = s.recvfrom(1024)
-        thread.start_new_thread(thread,(data, addr, DNS))
+        thread.start_new_thread(thread,(data, addr, dns, ca_path))
    except Exception as e:
       logger.error('Failed to secure: '+ str(e))
       print (e)
