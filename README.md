@@ -12,6 +12,9 @@ If the query is successful forwards the result to the clinet.
 It can be used from the terminal as script or a Docker container.
 
 # Security concerns
-
+In addition, DNS continues to be a target for DDoS attacks. When DNS goes down, applications will fail to function properly, affecting subscriber experience. It is now more critical than ever for operators to enable dynamic service delivery infrastructure for managing and securing the impending flood of DNS traffic. That's why 
+is important to secure it.
+I thnik services like this are more secure. We know who is behind it and what exactly is their purpose.
+To integrate such service and test it properly in would definity use tools such as Ansible, Docker, Kubernetes and Jenkins. 
 # Testing
 For testing we can use Wireshark, netcat, dig, curl and so on.
