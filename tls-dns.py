@@ -1,7 +1,6 @@
+#!/usr/bin/env python3
 
-#!/usr/bin/env python 
-
-from argparse import ArgumentParser
+import argparse
 import binascii
 import logging
 import socket
@@ -13,7 +12,6 @@ logger = logging.getLogger(__name__)
 
 
 def send_message(dns, query, ca_path):
-
     server = (dns, 853)
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.settimeout(80)
@@ -28,16 +26,15 @@ def send_message(dns, query, ca_path):
     wrapped_socket.connect(server)
     logger.info("Server peer certificate: %s", str(wrapped_socket.getpeercert()))
 
-    tcp_msg = "\x00".encode() + chr(len(query)).encode() + query
+    tcp_msg = b"\x00" + bytes([len(query)]) + query.encode()
     logger.info("Client request: %s", str(tcp_msg))
     wrapped_socket.send(tcp_msg)
     data = wrapped_socket.recv(1024)
     return data
 
 
-def thread(data, address, socket, dns, ca_path):
-
-    answer = send_message(dns, data, ca_path)
+def thread(data, address, dns, ca_path):
+    answer = send_message(dns, data.decode(), ca_path)
     if answer:
         logger.info("Server reply: %s", str(answer))
         rcode = binascii.hexlify(answer[:6]).decode("utf-8")
@@ -47,25 +44,26 @@ def thread(data, address, socket, dns, ca_path):
         else:
             logger.info("Proxy OK, RCODE = %s", rcode)
             return_ans = answer[2:]
-            socket.sendto(return_ans, address)
+            socket.socket(socket.AF_INET, socket.SOCK_DGRAM).sendto(return_ans, address)
     else:
-        logger.warn("Empty reply from server.")
+        logger.warning("Empty reply from server.")
+
 
 if __name__ == "__main__":
-   dns = '1.1.1.1'
-   port = 53
-   host='0.0.0.0'
-   ca_path='/etc/ssl/cert.pem'   
-   try:
-      s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-      s.bind((host, port))
-      while True:
-        data,addr = s.recvfrom(1024)
-        thread.start_new_thread(thread,(data, addr, dns, ca_path))
-   except Exception as e:
-      logger.error('Failed to secure: '+ str(e))
-      print (e)
-      s.close()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--dns", default="1.1.1.1", help="DNS server IP address")
+    parser.add_argument("--port", type=int, default=53, help="Port to listen on")
+    parser.add_argument("--host", default="0.0.0.0", help="Host IP address to bind to")
+    parser.add_argument("--ca_path", default="/etc/ssl/cert.pem", help="Path to the CA file")
+    args = parser.parse_args()
 
-
-
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.bind((args.host, args.port))
+        while True:
+            data, addr = s.recvfrom(1024)
+            threading.Thread(target=thread, args=(data, addr, args.dns, args.ca_path)).start()
+    except Exception as e:
+        logger.error('Failed to secure: '+ str(e))
+        print (e)
+        s.close()
